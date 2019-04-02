@@ -1277,10 +1277,12 @@ Later, when the buffer is buried, it may be restored by
   "Insert backward/forward buttons if the major-mode supports it.
 Currently `magit-log-mode', `magit-reflog-mode',
 `magit-diff-mode', and `magit-revision-mode' support it"
-  (when (memq major-mode '(magit-log-mode
-                           magit-reflog-mode
-                           magit-diff-mode
-                           magit-revision-mode))
+  (when-let ((variables
+              (cl-case major-mode
+                (magit-log-mode )
+                (magit-reflog-mode )
+                (magit-diff-mode )
+                (magit-revision-mode ))))
     (when help-xref-stack-item
       (push (cons (point) help-xref-stack-item) help-xref-stack)
       (setq help-xref-forward-stack nil))
@@ -1288,12 +1290,14 @@ Currently `magit-log-mode', `magit-reflog-mode',
       (--when-let (nthcdr 10 help-xref-stack)
         (setcdr it nil)))
     (setq help-xref-stack-item
-          `(magit-xref-restore ,default-directory ,@magit-refresh-args))))
+          `(magit-xref-restore ,(mapcar (lambda (var)
+                                          (list var (symbol-value var)))
+                                        variables)))))
 
-(defun magit-xref-restore (&rest args)
+(defun magit-xref-restore (alist)
   (magit-xref-setup)
-  (setq default-directory  (car args))
-  (setq magit-refresh-args (cdr args))
+  (pcase-dolist (`(,var ,val) alist)
+    (set var val))
   (magit-refresh-buffer))
 
 ;;; Repository-Local Cache
